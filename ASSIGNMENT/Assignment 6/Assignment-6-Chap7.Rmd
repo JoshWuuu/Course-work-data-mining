@@ -1,0 +1,242 @@
+---
+title: "Assignment 6 Chap 7"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1--Exercise 2
+(a) g(x)=0. RSS will be ignored because a large penalty forces g→0
+(b) g(x)=c. RSS will be ignored because a large penalty forces first derivative g→0
+(c) g(x)=ax+c. RSS will be ignored because a large penalty forces second derivative g→0
+(d) g(x)=ax^2+c. RSS will be ignored because a large penalty forces third derivative g→0
+(e) The penalty is 0. It is a linear regression to select g by minimizing RSS.
+
+## Problem 2--Exercise 8
+```{r}
+set.seed(1)
+library(ISLR)
+attach(Auto)
+pairs(Auto)
+```
+mpg is inversely proprotional to cylinders, displacement, horsepower, and weight.
+I will try horsepower to check its non-linear relationships.
+
+Polynomial
+```{r}
+library(glmnet)
+library(boot)
+cv.error = rep(NA, 10)
+for (d in 1:10) {
+  fit = glm(mpg~poly(horsepower,d), data = Auto)
+  cv.error[d] = cv.glm(Auto, fit, K = 10)$delta[1]
+}
+which.min(cv.error)
+```
+
+Step functions
+```{r}
+cv.error = rep(NA, 10)
+for (c in 2:10) {
+  Auto$horseCut=cut(Auto$horsepower, c)
+  fit = glm(mpg~horseCut, data = Auto)
+  cv.error[d] = cv.glm(Auto, fit, K = 10)$delta[1]
+}
+which.min(cv.error)
+```
+
+Splines
+```{r}
+library(splines)
+cv.error = rep(NA, 10)
+for (df in 3:10) {
+  fit = glm(mpg~ns(horsepower, df=df), data = Auto)
+  cv.error[d] = cv.glm(Auto, fit, K = 10)$delta[1]
+}
+which.min(cv.error)
+```
+
+GAM
+```{r}
+library(gam)
+fit = gam(mpg~ s(horsepower, 10) + s(horsepower, 7) + s(horsepower, 3) + s(horsepower, 4), data = Auto)
+summary(fit)
+```
+As all the methods show, the relationship between horsepower and mpg is highly non-linear, which is almost about df 10.
+
+## Problem 3--Exercise 9
+(a)
+```{r}
+set.seed(1)
+library(MASS)
+attach(Boston)
+lm.9a=lm(nox ~ poly(dis, 3), data = Boston)
+summary(lm.9a)
+dislim=range(dis)
+dis.grid = seq(from=dislim[1], to = dislim[2], by=0.1)
+lm.pred= predict(lm.9a, list(dis = dis.grid))
+plot(nox~dis, data = Boston, col = "darkgrey")
+lines(dis.grid, lm.pred, col="red", lwd = 2)
+```
+
+(b)
+```{r}
+poly.resi = rep(NA, 10)
+for (d in 1:10) {
+  fit = lm(nox~poly(dis,d), data = Auto)
+  poly.resi[d]= sum(fit$residuals^2)
+}
+poly.resi
+plot(1:10,poly.resi, xlab = "poly degree", ylab = "RSS", col="red", pch=20)
+```
+
+(c)
+```{r}
+cv.error = rep(NA, 10)
+for (d in 1:10) {
+  fit = glm(nox~poly(dis,d), data = Auto)
+  cv.error[d]= cv.glm(Boston, fit, K = 10)$delta[1]
+}
+cv.error
+plot(1:10,cv.error, xlab = "poly degree", ylab = "cv error", col="red", pch=20)
+```
+I will choose 3 as my optimal degree, since it got the second best result, and is simpler than the best model, poly=4.
+
+(d)
+The range of dis is from 1 to 13, then we split in into 4 parts, 3 knots.
+```{r}
+sp.9d=lm(nox~bs(dis, df=4, knots = c(4,7,11)), data=Boston)
+summary(sp.9d)
+sp.pred=predict(sp.9d, list(dis=dis.grid))
+plot(nox~dis, data = Boston, col="darkgrey")
+lines(dis.grid, sp.pred, col="red", lwd=2)
+```
+As the plot shows, this 3 knots split result is quiet close to the dataset, excpet dis>10, where data become scarce.
+
+(e)
+The range of dis is from 1 to 13, then we split in into 4 parts, 3 knots.
+```{r}
+cv.rss = rep(NA, 20)
+for (df in 3:20) {
+  fit = lm(nox~bs(dis, df=df), data=Boston)
+  cv.rss[df] = sum(fit$residuals^2)
+}
+cv.rss[3:20]
+```
+As you can see, train rss decreases continuly till df=14, meaning df=14 produce the best fit.
+
+(f)
+The range of dis is from 1 to 13, then we split in into 4 parts, 3 knots.
+```{r}
+cv.error = rep(NA, 20)
+for (i in 3:20) {
+  fit = glm(nox~bs(dis, df=i), data=Boston)
+  cv.error[i] = cv.glm(Boston, fit, K =10)$delta[1]
+}
+cv.error
+plot(3:20,cv.error[3:20], xlab = "poly degree", ylab = "cv error", type = "l", col="red", pch=20)
+```
+Test MSE is minimum for 10 degrees of freedom.
+
+## Problem 4--Exercise 10
+(a)
+```{r}
+set.seed(1)
+library(leaps)
+library(ISLR)
+attach(College)
+train= sample(length(Outstate), length(Outstate)/2)
+test=-train
+College.train=College[train, ]
+College.test=College[test, ]
+reg.fit = regsubsets(Outstate ~ ., data = College.train, nvmax = 17, method = "forward")
+reg.summary = summary(reg.fit)
+which.min(reg.summary$cp)
+plot(reg.summary$cp, xlab = "Number of Variables", ylab = "cp", type = "l")
+which.min(reg.summary$bic)
+plot(reg.summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+which.max(reg.summary$adjr2)
+plot(reg.summary$adjr2, xlab = "Number of Variables", ylab = "adjr2", type = "l")
+```
+We pick predictors=6 as our minimum size for the subset.
+```{r}
+reg.6=regsubsets(Outstate~. , data = College, method = "forward")
+reg.6coef= coef(reg.6, id=6)
+names(reg.6coef)
+```
+
+(b)
+```{r}
+library(gam)
+gam.6=gam(Outstate~ Private +ns(Room.Board, df=2) +ns(PhD, df=2) +ns(perc.alumni, df=2) +ns(Expend, df=5) +ns(Grad.Rate, df=2), data = College.train)
+par(mfrow = c(2,3))
+plot(gam.6, se=T, col="red")
+```
+
+(c)
+```{r}
+gam.pred = predict(gam.6, College.test)
+gem.err=mean((College.test$Outstate - gam.pred)^2)
+gam.tss=mean((College.test$Outstate - mean(College.test$Outstate))^2)
+test.rss= 1-gem.err/gam.tss
+test.rss
+```
+the test R-squared is 0.76, which is quiet good. The model can account for 76% variation in the test data set.
+
+(d)
+```{r}
+summary(gam.6)
+```
+ANOVA shows a strong evidence of non-linear relationship between “Outstate” and “Expend”“, and a less strong non-linear relationship between ”Outstate" and “Grad.Rate”" or “PhD”.
+
+## Problem 5--Exercise 11
+(a)
+```{r}
+set.seed(1)
+x1=rnorm(100)
+x2=rnorm(100)
+noise=rnorm(100, sd=0.03)
+y = 7+ 5*x1 +3*x2 + noise
+```
+
+(b)
+```{r}
+beta0= rep(NA,1000)
+beta1= rep(NA,1000)
+beta2= rep(NA,1000)
+beta1[1]=5
+```
+
+(c,d,e)
+```{r}
+for(i in 1:1000){
+  a=y-beta1[i]*x1
+  beta2[i]=lm(a ~ x2)$coef[2]
+  a=y-beta2[i]*x2
+  beta1[i+1]=lm(a ~ x1)$coef[2]
+  beta0[i]= lm(a~ x1)$coef[1]
+}
+plot(1:1000, beta0, type="l", xlab = "iteration", ylab = "beta", ylim = c(2,8), col="red")
+lines(1:1000, beta1[1:1000], col="blue")
+lines(1:1000, beta2, col="green")
+legend("topright", c("beta0", "beta1","beta2"),lty=1, col = c("green", "red","blue"))
+```
+
+(f)
+```{r}
+multi.lm=lm(y~ x1+x2)
+plot(1:1000, beta0, type="l", xlab = "iteration", ylab = "beta", ylim = c(2,8), col="red")
+lines(1:1000, beta1[1:1000], col="blue")
+lines(1:1000, beta2, col="green")
+?abline
+abline(h=multi.lm$coef[1], lty="dashed", lwd=5, col = rgb(0, 0, 0, alpha = 0.4))
+abline(h=multi.lm$coef[2], lty="dashed", lwd=5, col = rgb(0, 0, 0, alpha = 0.4))
+abline(h=multi.lm$coef[3], lty="dashed", lwd=5, col = rgb(0, 0, 0, alpha = 0.4))
+legend("topright", c("beta0", "beta1","beta2","multiple regression"), lty=c(1,1,1,2), col = c("green", "red","blue", "black"))
+```
+hmm, I think they are so close to each other, multiregression and backfitting.
+
+(g)
+it seems like because the relationship between y and x is quiet simple, therefore, it can obtain a good approximation at first few tries.

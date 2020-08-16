@@ -1,0 +1,311 @@
+---
+title: "Kaggle"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r}
+pairs(train)
+attach(train)
+plot(train$S, train$P)
+plot(train$L, train$P)
+```
+bestsubset
+```{r}
+attach(train)
+library(leaps)
+train.car=sample(1:dim(train)[1], dim(train)[1]/2)
+test.car=(-train.car)
+traindata=train[train.car, ]
+testdata=train[test.car, ]
+bestsubset=regsubsets(P~.,data = traindata)
+bestsummary=summary(bestsubset)
+which.max(bestsummary$adjr2)
+which.min(bestsummary$cp)
+which.min(bestsummary$bic)
+plot(bestsummary$adjr2, xlab = "subset size", ylab="cp", type = "l")
+plot(bestsummary$cp, xlab = "subset size", ylab="cp", type = "l")
+plot(bestsummary$bic, xlab = "subset size", ylab="cp", type = "l")
+coef(bestsubset,2)
+#points(3, fs1.summary$cp[3], pch = 4, col = "red", lwd = 7)
+```
+
+```{r}
+fs1=regsubsets(P ~ ., data = traindata, nvmax = 10, method="forward")
+bw1=regsubsets(P ~ ., data = traindata, nvmax=10, method = "backward")
+fs1.summary=summary(fs1)
+bw1.summary=summary(bw1)
+par(mfrow = c(3,2))
+which.min(fs1.summary$cp)
+plot(fs1.summary$cp, xlab = "subset size", ylab="cp", type = "l")
+points(3, fs1.summary$cp[3], pch = 4, col = "red", lwd = 7)
+which.min(fs1.summary$bic)
+plot(fs1.summary$bic, xlab = "subset size", ylab="bic", type = "l")
+points(3, fs1.summary$bic[3], pch = 4, col = "red", lwd = 7)
+which.min(fs1.summary$adjr2)
+plot(fs1.summary$adjr2, xlab = "subset size", ylab="adjr2", type = "l")
+points(3, fs1.summary$adjr2[3], pch = 4, col = "red", lwd = 7)
+which.min(bw1.summary$cp)
+plot(bw1.summary$cp, xlab = "subset size", ylab="cp", type = "l")
+points(3, bw1.summary$cp[3], pch = 4, col = "red", lwd = 7)
+which.min(bw1.summary$bic)
+plot(bw1.summary$bic, xlab = "subset size", ylab="bic", type = "l")
+points(3, bw1.summary$bic[3], pch = 4, col = "red", lwd = 7)
+which.min(bw1.summary$adjr2)
+plot(bw1.summary$adjr2, xlab = "subset size", ylab="adjr2", type = "l")
+points(4, bw1.summary$adjr2[4], pch = 4, col = "red", lwd = 7)
+coefficients(fs1, id=5)
+coefficients(bw1, id=5)
+```
+lasso
+```{r}
+library(glmnet)
+
+train.car=sample(1:dim(train)[1], dim(train)[1]/2)
+test.car=(-train.car)
+traindata=train[train.car, ]
+testdata=train[test.car, ]
+grid = 10 ^ seq(4, -2, length=100)
+train.mat= model.matrix(P~., data = traindata)
+test.mat=model.matrix(P~., data = testdata)
+y=train$P
+lasso9= cv.glmnet(test.mat, y[test.car], alpha = 1)
+lasso99= glmnet(train.mat, y[train.car], alpha = 1, lambda = grid, thresh=1e-12)
+lasso.pred=predict(lasso99, newx = test.mat, s = lasso9$lambda.min)
+x=(testdata[,"P"]- lasso.pred)^2
+lasso.errMSE=mean(x)
+AVATEST=testdata[,"P"]
+xt=(testdata[,"P"]- mean(AVATEST))^2
+lasootss=mean(xt)
+test.lassorss= 1-lasso.errMSE/lasootss
+test.lassorss
+
+x.lasso=predict(lasso99, s=lasso9$lambda.min, type="coefficients")
+x.lasso
+```
+
+lm based on bestsubset
+```{r}
+lr=lm(P~Y+R+S+Sch, data= traindata)
+lr.pred = predict(lr, testdata)
+x=(testdata[,"P"]-lr.pred)^2
+summary(lr)
+mean(x$P)
+```
+lm based on lasso
+```{r}
+train.car=sample(1:dim(train)[1], dim(train)[1]/2)
+test.car=(-train.car)
+traindata=train[train.car, ]
+testdata=train[test.car, ]
+lasso.lm=lm(P~., data= traindata)
+lasso.pred = predict(lasso.lm, testdata)
+x=(testdata[,"P"]-lasso.pred)^2
+summary(lasso.lm)
+mean(x)
+```
+
+gam by the predicator of the bestsubset
+```{r}
+library(gam)
+gam.house=gam(P~R+Sch +ns(Y, df=3) +ns(S, df=3), data = traindata)
+par(mfrow = c(2,3))
+plot(gam.house, se=T, col="red")
+gam.housepred = predict(gam.house, testdata)
+x=(testdata[,"P"]- gam.housepred)^2
+gem.errMSE=mean(x$P)
+summary(gam.house)
+```
+
+```{r}
+pairs(train)
+attach(train)
+plot(train$S, train$P)
+plot(train$Y, train$P)
+plot(train$R, train$P)
+plot(train$Sch, train$P)
+```
+find the best df OF Y
+```{r}
+library(splines)
+library(glmnet)
+library(boot)
+cv.Yerror = rep(NA, 20)
+for (i in 3:20) {
+  fit = glm(P~ns(S, df=i), data=traindata)
+  cv.Yerror[i] = cv.glm(traindata, fit, K =10)$delta[1]
+}
+which.min(cv.Yerror)
+plot(3:20,cv.Yerror[3:20], xlab = "poly degree", ylab = "cv error", type = "l", col="red", pch=20)
+```
+Y DF=5
+find the best df of s 
+```{r}
+cv.Serror = rep(NA, 20)
+for (i in 3:20) {
+  fit = glm(P~bs(s, df=i), data=traindata)
+  cv.Serror[i] = cv.glm(testdata, fit, K =10)$delta[1]
+}
+which.min(cv.Serror)
+plot(3:20,cv.Serror[3:20], xlab = "poly degree", ylab = "cv error", type = "l", col="red", pch=20)
+```
+s df=4
+
+y 5 s 4 
+```{r}
+library(gam)
+gam.house54=gam(P~R+ Sch + poly(Y,2) +ns(S, df=2), data = traindata)
+par(mfrow = c(2,3))
+plot(gam.house54, se=T, col="red")
+gam.housepred54 = predict(gam.house54, testdata)
+x=(testdata[,"P"]- gam.housepred54)^2
+gem.54errMSE=mean(x)
+summary(gam.house54)
+AVATEST=testdata[,"P"]
+xt=(testdata[,"P"]- mean(AVATEST))^2
+gam.544tss=mean(xt)
+test.54rss= 1-gem.54errMSE/gam.544tss
+test.54rss
+```
+
+find the best df of l 
+```{r}
+cv.Lerror = rep(NA, 20)
+for (i in 3:20) {
+  fit = glm(P~bs(L, df=i), data=traindata)
+  cv.Lerror[i] = cv.glm(traindata, fit, K =10)$delta[1]
+}
+Y=which.min(cv.Lerror)
+Y
+plot(3:20,cv.Lerror[3:20], xlab = "poly degree", ylab = "cv error", type = "l", col="red", pch=20)
+
+```
+L=4
+
+y 5 s 4 PLUS L 4
+```{r}
+?data.frame
+predict.house=as.data.frame(matrix(NA,138,100))
+predict.housedataframe=data.frame(predict.house)
+gam.house544=gam(P~R+Sch +ns(Y, df=5) +ns(S, df=4)+ns(L, df=4), data = traindata)
+predict.house = predict(gam.house544, testdata)
+predict.house[,1]=predict(gam.house544, testdata)
+```
+47e
+```{r}
+anova(gam.house,gam.house54,gam.house544)
+```
+
+bootstrap
+```{r}
+boot.fn=function(data,index){
+  coefficients(gam(P~R+Sch +ns(Y, df=5) +ns(S, df=4)+ns(L, df=4), data = data, subset = index))
+}
+boot(traindata, boot.fn,1000)
+
+```
+
+tree
+```{r}
+library(randomForest)
+set.seed(1)
+rf.house=randomForest(P~Y+R+S+Sch,data=train, subset=train.car, mtry=3, importance=TRUE)
+importance(rf.house)
+rf.pred=predict(rf.house, data=testdata)
+x.rf=(testdata[,"P"]- rf.pred)^2
+rf.err=mean(x.rf$P)
+test.rfr2= 1-rf.err/gam.544tss
+```
+
+bagging
+```{r}
+library(splines)
+library(glmnet)
+library(boot)
+predict.house=as.data.frame(matrix(NA,75,1000))
+for (i in 1:1000) {
+  train.car=sample(1:dim(train)[1], dim(train)[1])
+  traindata=train[train.car, ]
+  predict.testdata=test_House
+  # find y
+  cv.Yerror = rep(NA, 20)
+  for (x in 3:20) {
+    fit = glm(P~bs(Y, df=x), data=traindata)
+    cv.Yerror[x] = cv.glm(traindata, fit, K =5 )$delta[1]
+  }
+  if (which.min(cv.Yerror)<3){
+    YMiN=which.min(cv.Yerror)
+  } else {
+    YMiN=3
+  }
+  # find s
+  cv.Serror = rep(NA, 20)
+  for (y in 3:20) {
+    fit = glm(P~bs(S, df=y), data=traindata)
+    cv.Serror[y] = cv.glm(traindata, fit, K =5)$delta[1]
+  }
+  if (which.min(cv.Serror)<4){
+    SMiN=which.min(cv.Serror)
+  } else {
+    SMiN=4
+  }
+  #gam
+  gam.housebagging=gam(P~R+Sch +ns(Y, df=YMiN) +ns(S, df=SMin), data = traindata)
+  predict.house[,i] = predict(gam.housebagging, predict.testdata)
+}
+test_House
+```
+
+
+```{r}
+predicted=rep(NA,75)
+ID=as.data.frame(1:75)
+predicted=rowMeans(predict.house, na.rm = FALSE, dims = 1)
+predicted.data=data.frame(Id=ID, Predicted=predicted)
+names(predicted.data)[1]='Id'
+write.csv(predicted.data,"~/Desktop/submitted prediction6.csv", row.names = FALSE)
+```
+
+```{r}
+predict.house=as.data.frame(matrix(NA,75,1000))
+for (i in 1:1000) {
+  predict.testdata=test_House
+  train.car=sample(1:dim(train)[1], dim(train)[1]/2)
+  test.car=(-train.car)
+  traindata=train[train.car, ]
+  testdata=train[test.car, ]
+  grid = 10 ^ seq(4, -2, length=100)
+  train.mat= model.matrix(P~., data = traindata)
+  test.mat=model.matrix(P~., data = testdata)
+  predict.mat=model.matrix(Id~., data=test_House)
+  y=train$P
+  lasso9= cv.glmnet(test.mat, y[test.car], alpha = 0)
+  lasso99= glmnet(train.mat, y[train.car], alpha = 0, lambda = grid, thresh=1e-12)
+  predict.house[,i] = predict(lasso99, newx = predict.mat, s=lasso9$lambda.min)
+}
+```
+
+```{r}
+predict.house=as.data.frame(matrix(NA,75,1000))
+
+  predict.testdata=test_House
+  train.car=sample(1:dim(train)[1], dim(train)[1]/2)
+  test.car=(-train.car)
+  traindata=train[train.car, ]
+  testdata=train[test.car, ]
+  grid = 10 ^ seq(4, -2, length=100)
+  train.mat= model.matrix(P~., data = traindata)
+  test.mat=model.matrix(P~., data = testdata)
+  predict.mat=model.matrix(Id~., data=test_House)
+  y=train$P
+  lasso9= cv.glmnet(test.mat, y[test.car], alpha = 1)
+  lasso99= glmnet(train.mat, y[train.car], alpha = 1, lambda = grid, thresh=1e-12)
+  predict.house[,i] = predict(lasso99, newx = predict.mat, s=lasso9$lambda.min)
+
+```

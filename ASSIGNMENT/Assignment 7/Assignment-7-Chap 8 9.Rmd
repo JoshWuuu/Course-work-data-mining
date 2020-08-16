@@ -1,0 +1,290 @@
+---
+title: "Assignment7 Chapter 8,9"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1--Exercise 8-4
+(a) if x1>1, y=5, else if x2>1, y=15, else if x1<0, y=3, else if x2>0, y=0
+(b)
+```{r cars}
+plot(NA, NA, type="n", xlim = c(-2,2), ylim = c(-3,3), xlab = "x1", ylab = "x2")
+lines(x=c(-2,2), y=c(1,1))
+lines(x = c(1, 1), y = c(-3, 1))
+text(x = (-2 + 1)/2, y = -1, labels = c(-1.8))
+text(x = 1.5, y = -1, labels = c(0.63))
+lines(x = c(-2, 2), y = c(2, 2))
+text(x = 0, y = 2.5, labels = c(2.49))
+lines(x = c(0, 0), y = c(1, 2))
+text(x = -1, y = 1.5, labels = c(-1.06))
+text(x = 1, y = 1.5, labels = c(0.21))
+```
+
+## Problem 2--Exercise 8-8
+(a)
+```{r}
+library(ISLR)
+data("Carseats")
+train=sample(1:nrow(Carseats), nrow(Carseats)/2)
+test.data=Carseats[-train,]
+train.data=Carseats[train,]
+```
+
+(b)
+```{r}
+library(tree)
+tree.car=tree(Sales~. ,data=train.data)
+summary(tree.car)
+plot(tree.car)
+text(tree.car, pretty = 0)
+y.test=predict(tree.car, test.data)
+mean((y.test-test.data$Sales)^2)
+```
+Test MSE is 4.92
+
+(c)
+```{r}
+cv.car=cv.tree(tree.car)
+plot(cv.car$size, cv.car$dev, type = "b")
+tree.min=which.min(cv.car$dev)
+points(cv.car$size[tree.min], cv.car$dev[tree.min], col="red", cex=2, pch=20)
+```
+the tree size is 13
+```{r}
+prune.car=prune.tree(tree.car, best = 13)
+plot(prune.car)
+text(prune.car, pretty=0)
+```
+
+```{r}
+prune.carpred=predict(prune.car, test.data)
+mean((prune.carpred-test.data$Sales)^2)
+```
+the test MSE increases to 5
+
+(d)
+```{r}
+library(randomForest)
+bag.car=randomForest(Sales~., data=train.data, mtry=10, importance = TRUE)
+bag.carpred=predict(bag.car, test.data)
+mean((bag.carpred-test.data$Sales)^2)
+```
+the test MSE is 3.1
+```{r}
+importance(bag.car)
+```
+price and shelveloc are the two most important variables
+
+(e)
+```{r}
+random.car=randomForest(Sales~., data=train.data, mtry=5, importance = TRUE)
+random.carpred=predict(random.car, test.data)
+mean((random.carpred-test.data$Sales)^2)
+```
+the test MSE is 3.25
+```{r}
+importance(random.car)
+```
+price and shelveloc are still the two most important variables
+
+## Problem 3--Exercise 8-10
+(a)
+```{r}
+Hitters= na.omit(Hitters)
+Hitters$Salary= log(Hitters$Salary)
+```
+
+(b)
+```{r}
+train=1:200
+hitters.train=Hitters[train,]
+hitters.test=Hitters[-train,]
+```
+
+(c)
+```{r}
+library(gbm)
+set.seed(1)
+x=seq(-10, -0.2, by=0.1)
+penalty=10^x
+train.err=rep(NA, length(penalty))
+for (i in 1:length(penalty)) {
+  boost.hitter = gbm(Salary~., data= hitters.train, distribution = "gaussian", n.trees=1000, shrinkage=penalty[i])
+  train.pred= predict(boost.hitter, hitters.train, n.trees=1000)
+  train.err[i]=mean((train.pred-hitters.train$Salary)^2)
+}
+plot(penalty, train.err, type = "b", xlab = "Shrinkage", ylab = "training MSE")
+```
+
+(d)
+```{r}
+set.seed(1)
+x=seq(-10, -0.2, by=0.1)
+penalty=10^x
+test.err=rep(NA, length(penalty))
+for (i in 1:length(penalty)) {
+  boost.hitter = gbm(Salary~., data= hitters.train, distribution = "gaussian", n.trees=1000, shrinkage=penalty[i])
+  test.pred= predict(boost.hitter, hitters.test, n.trees=1000)
+  test.err[i]=mean((test.pred-hitters.test$Salary)^2)
+}
+plot(penalty, test.err, type = "b", xlab = "Shrinkage", ylab = "testing MSE")
+```
+
+```{r}
+min(test.err)
+penalty[which.min(test.err)]
+```
+Minimum test MSE is 0.25, shrinkage value is 0.079
+
+(e)
+```{r}
+library(glmnet)
+lr=lm(Salary~., data = hitters.train)
+pred.lr=predict(lr, hitters.test)
+mean((pred.lr-hitters.test$Salary)^2)
+```
+
+```{r}
+x=model.matrix(Salary~., data = hitters.train)
+x.test=model.matrix(Salary~., data=hitters.test)
+y=hitters.train$Salary
+ridge= glmnet(x,y,alpha = 0)
+pred.rid=predict(ridge, x.test)
+mean((pred.rid-hitters.test$Salary)^2)
+```
+both of the methods are higher than the boosting method.
+
+(e)
+```{r}
+boost.min=gbm(Salary~., data = hitters.train, distribution = "gaussian", n.trees = 1000, shrinkage = x[which.min(test.err)])
+summary(boost.min)
+```
+the most importnat variable is CAtBat
+
+(f)
+```{r}
+bag.hitters=randomForest(Salary~., data = hitters.train, mtry=19, ntree=500)
+bag.hitterspred=predict(bag.hitters, hitters.test)
+mean((bag.hitterspred-hitters.test$Salary)^2)
+```
+slightly lower than the boosting
+
+## Problem 4--Exercise 9-4
+(a)
+```{r}
+library(e1071)
+set.seed(1)
+x=rnorm(100)
+x1= 5*x^2 + rnorm(100)
+randomsample=sample(100,50)
+x1[randomsample]=x1[randomsample]+4
+x1[-randomsample]=x1[-randomsample]-4
+plot(x[randomsample], x1[randomsample], col="red", xlab = "x", ylab = "x1", ylim = c(-7,15))
+points(x[-randomsample], x1[-randomsample], col="blue")
+```
+
+
+```{r}
+y= rep(-1,100)
+y[randomsample]=1
+data = data.frame(x=x, x1=x1, y = as.factor(y))
+train=sample(100,50)
+data.train=data[train,]
+data.test=data[-train,]
+svm.linear=svm(y~., data = data.train, kernel="linear", cost=1)
+plot(svm.linear, data.train)
+table(predict=predict(svm.linear, data.train), truth=data.train$y)
+```
+the support vector classifier make 5 training errors.
+then lets try svm
+```{r}
+svm.poly=svm(y~., data = data.train, kernel="polynomial", cost=1)
+plot(svm.poly, data.train)
+table(predict=predict(svm.poly, data.train), truth=data.train$y)
+```
+the support vector machine poly 2 make 11 training errors.
+radial
+```{r}
+svm.rad=svm(y~., data = data.train, kernel="radial", gamma= 1, cost=1)
+plot(svm.rad, data.train)
+table(predict=predict(svm.rad, data.train), truth=data.train$y)
+```
+the support vector machine rad make 1 training errors.
+let try test error
+```{r}
+plot(svm.linear, data.test, main="linear")
+plot(svm.poly, data.test, main="poly")
+plot(svm.rad, data.test, main="rad")
+table(lineartestpredict = predict(svm.linear, data.test), truth=data.test$y)
+table(polytestpredict=predict(svm.poly, data.test), truth=data.test$y)
+table(radtesttpredict=predict(svm.rad, data.test), truth=data.test$y)
+```
+like training data error, the radial classifier is still the best model for the test data, only making 3 testing error.
+
+## Problem 5--Exercise 9-7
+(a)
+```{r}
+library(ISLR)
+dummy.mile=ifelse(Auto$mpg>median(Auto$mpg), 1, 0)
+Auto$mpgdummy=as.factor(dummy.mile)
+```
+
+(b)
+```{r}
+set.seed(1)
+tune.svc=tune(svm, mpgdummy~., data = Auto, kernel="linear", ranges = list(cost= c(0.01, 0.1, 1, 5, 10, 100, 1000)))
+summary(tune.svc)
+```
+cost 1 and 5 perform best.
+
+(c)
+```{r}
+set.seed(1)
+tune.poly=tune(svm, mpgdummy~., data = Auto, kernel="polynomial", ranges = list(cost= c(0.01, 0.1, 1, 5, 10, 100, 1000), degree=c(2,3,4,5)))
+summary(tune.poly)
+```
+cost 1000 with degree= 2 perform best.
+```{r}
+set.seed(1)
+tune.rad=tune(svm, mpgdummy~., data = Auto, kernel="radial", ranges = list(cost= c(0.01, 0.1, 1, 5, 10, 100, 1000), gamma=c(0.01, 0.1, 1, 5, 10, 100, 1000)))
+summary(tune.rad)
+```
+cost 100 with gamma= 0.01 perform best.
+
+## Problem 6
+(a)
+```{r}
+library(kernlab)
+library(datasets)
+set.seed(3)
+data(reuters)
+y <- rlabels # article topic
+x <- reuters # article
+gap=rep(NA,7)
+for (i in 2:7) {
+ker = read.csv(paste('~/Desktop/len',i,'lam0.1.csv',sep = ""))
+ker = as.kernelMatrix(as.matrix(ker))
+svgap = ksvm(x=ker[,-1],y=rlabels,cross=5)
+gap[i]=cross(svgap)
+}
+gap
+plot(2:7,gap[2:7], xlab="gap length", ylab="test error", pch=20, col="red")
+```
+For gappy kernel, length 3 got the best test error.
+```{r}
+data(reuters)
+y <- rlabels # article topic
+x <- reuters # article
+set.seed(1)
+spec=rep(NA,7)
+for (i in 2:7) {
+sk <- stringdot(type="spectrum", length=i, normalized=TRUE) #spectrum kernel count the word appear in the article
+svp <- ksvm(x,y,kernel=sk,scale=c(),cross=5) #run an SVM with the kernel sk
+spec[i]=cross(svp) #test error estimate 
+}
+plot(2:7,spec[2:7], xlab="gap length", ylab="test error", pch=20, col="red")
+```
+for the spectrum kernel, length 3 got the best test error

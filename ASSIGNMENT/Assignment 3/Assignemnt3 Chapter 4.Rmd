@@ -1,0 +1,254 @@
+---
+title: "Assignment 3 Chapter 4"
+output: 
+  html_document:
+    df_print: paged
+---
+
+### (4.a)
+```{r}
+
+```
+10%, except x<0.05 x>0.95
+
+### (4.b)
+```{r}
+
+```
+It is an area concept, 10% multiplied by 10%, which means we only got 1% availability.
+
+### (4.c)
+```{r}
+
+```
+10% to the power of 100, roughly 0.
+
+### (4.d)
+```{r}
+
+```
+It seems that as p (dimensionality) increases, the percentage of available observations in the specific range decrease expontentially.
+
+### (4.e)
+```{r}
+
+```
+P=1 l=0.1, p=2 l=square root of 0.01, p=100 l=100th root of 0.01
+
+### (5.a)
+```{r}
+
+```
+QDA perform better on the training set since it will overfit the linear boundary, whose MSE will be nearly 0.
+LDA perform better both on the test set since the variance and bias of it are both so low.
+
+### (5.b)
+```{r}
+
+```
+QDA can perform better on both on the set, training and test. Since the LDA will have a very high bias for the two data set.
+
+### (5.c)
+```{r}
+
+```
+QDA will perform better, for this large n sample size, QDA is easier to capture the complicated relationship between the n compared to LDA, which mean QDA can provide the better fit.
+
+### (5.d)
+```{r}
+
+```
+False. QDA will always be too flexible to overfit the noise in the data. even if the variance of the data is small, which will lead QDA (flexible method) to perform well, the LDA will still be better, since the true boudary is a line.... 
+
+### (6.a)
+```{r}
+
+```
+x1=40 x2=3.5
+β0=−6,β1=0.05,β2=1
+p(X)=exp(β0+β1X1+β2X2)/(1+exp(β0+β1X1+β2X2)=37.75%
+
+### (6.b)
+```{r}
+
+```
+p(X)=0.5, x2=3.5
+β0=−6,β1=0.05,β2=1
+plug in the equation above, and solve it, x1=50hrs
+
+### (8)
+```{r}
+
+```
+logistic regression 20% training error 30% testing error
+1-nearest neighbors average 18%, 0% for training error and 36% for testing error
+1-nearest neighbors is too flexible to overfit all the noise, 0% for training error.
+I will go for logistic regression since it got a lower testing error.
+
+### (10.a)
+```{r}
+library(ISLR)
+data("Weekly")
+summary(Weekly)
+cor(Weekly[, -9])
+```
+Volume and year have a positive relationship.
+
+### (10.b)
+```{r}
+attach(Weekly)
+glm.ex10=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data = Weekly, family = binomial)
+summary(glm.ex10)
+```
+Lag2 a little bit significance.
+
+### (10.c)
+```{r}
+glm.pre10= predict(glm.ex10, type = "response")
+glm.pre=rep("Down", 1089)
+glm.pre[glm.pre10 > 0.5] = "Up"
+table(glm.pre, Weekly$Direction)
+mean(glm.pre == Weekly$Direction)
+```
+The total correct percentage is 56.1%. The UP correct percentage is 92.1%. The Down correct percentage is 11.2%.
+
+### (10.d)
+```{r}
+train = (Year<2009)
+test.data = Weekly[!train, ]
+glm.d = glm(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+glm.logis = predict(glm.d, test.data, type = "response")
+glm.prelog=rep("Down", length(glm.logis))
+glm.prelog[glm.logis > 0.5] = "Up"
+Direction0910 = Direction[!train]
+table(glm.prelog, Direction0910)
+mean(glm.prelog == Direction0910)
+```
+
+### (10.e)
+```{r}
+library(MASS)
+lda.e=lda(Direction~Lag2, data=Weekly, subset = train)
+lda.predict= predict(lda.e, test.data)
+table(lda.predict$class, Direction0910)
+mean(lda.predict$class == Direction0910)
+```
+
+### (10.f)
+```{r}
+qda.f=qda(Direction ~ Lag2, data = Weekly, subset = train)
+qda.predict= predict(qda.f, test.data)$class
+table(qda.predict, Direction0910)
+mean(qda.predict == Direction0910)
+```
+
+### (10.g)
+```{r}
+library(class)
+train.X = as.matrix(Lag2[train])
+test.X = as.matrix(Lag2[!train])
+train.Direction = Direction[train]
+set.seed(1)
+knn.pred = knn(train.X, test.X, train.Direction, k = 1)
+table(knn.pred, Direction0910)
+mean(knn.pred == Direction0910)
+```
+
+### (10.h)
+Logistic and LDA provide the best test error, 62.5%
+
+### (10.i)
+```{r}
+logistic = glm(Direction~ Lag1:Lag3, data=Weekly, family = binomial, subset= train)
+logistic.prob=predict(logistic, test.data, type="response")
+logistic.pred=rep("Down", length(logistic.prob))
+logistic.pred[logistic.prob>.5]="Up"
+table(logistic.pred, Direction0910)
+mean(logistic.pred == Direction0910)
+
+lda.i= lda(Direction~ Lag2+I(Lag1^2), data = Weekly, subset = train)
+lda.pred=predict(lda.i, test.data)$class
+table(lda.pred, Direction0910)
+mean(lda.pred == Direction0910)
+
+qda.i= qda(Direction~ I(Lag1^2)+Lag2:Volume, data=Weekly, subset = train)
+qda.pred=predict(qda.i, test.data)$class
+table(qda.pred, Direction0910)
+mean(qda.pred==Direction0910)
+
+knn.pred1=knn(train.X, test.X, train.Direction, k=1)
+table(knn.pred, Direction0910)
+mean(knn.pred==Direction0910)
+
+knn.pred100=knn(train.X, test.X, train.Direction, k=100)
+table(knn.pred1, Direction0910)
+mean(knn.pred1==Direction0910)
+```
+As the above shows, the LDA got the best performance among the others, 64% correct rate. And from the knn, the k100 perform better than k1. All of these indicates that the linear relationship seems perfrom a little better than the more flexible one.
+
+### (11.a)
+```{r}
+library(ISLR)
+data("Auto")
+attach(Auto)
+med=median(mpg)
+mpg01=rep(0, length(Auto$mpg))
+mpg01[mpg > med]= 1
+Auto= data.frame(Auto, mpg01)
+```
+
+### (11.b)
+```{r}
+cor(Auto[, -9])
+pairs(Auto)
+```
+From the scatter plot, it seems that there is no one is good at predicting the mpg01
+
+### (11.c)
+```{r}
+train = (year < 77)
+Auto.test.data= Auto[!train,]
+mpg01ForTest= mpg01[!train]
+```
+
+### (11.d)
+```{r}
+library(MASS)
+lda.ele=lda(mpg01~ cylinders + weight + displacement + horsepower, data=Auto, subset=train)
+lda.ELEpredict=predict(lda.ele, Auto.test.data)$class
+mean(lda.ELEpredict==mpg01ForTest)
+```
+
+### (11.e)
+```{r}
+qda.fit = qda(mpg01 ~ cylinders + weight + displacement + horsepower, data = Auto, subset = train)
+qda.ELEpredict=predict(qda.fit, Auto.test.data)$class
+mean(qda.ELEpredict==mpg01ForTest)
+```
+
+### (11.f)
+```{r}
+logis.fit = glm(mpg01 ~ cylinders + weight + displacement + horsepower, data = Auto, family = binomial, subset = train)
+logis.ELEpredict=predict(logis.fit, Auto.test.data, type="response")
+log.predict=rep(0, length(logis.ELEpredict))
+log.predict[logis.ELEpredict>.5]=1
+mean(log.predict==mpg01ForTest)
+```
+
+### (11.g)
+```{r}
+library(class)
+train.y=cbind(cylinders, weight, displacement, horsepower)[train, ]
+test.y=cbind(cylinders, weight, displacement, horsepower)[!train, ]
+train.mpg01=mpg01[train]
+set.seed(1)
+knn.pred3=knn(train.y, test.y, train.mpg01, k=3)
+mean(knn.pred3 == mpg01ForTest)
+
+knn.pred10=knn(train.y, test.y, train.mpg01, k=10)
+mean(knn.pred10 == mpg01ForTest)
+
+knn.pred101=knn(train.y, test.y, train.mpg01, k=101)
+mean(knn.pred101 == mpg01ForTest)
+```
+k=10 perform best!

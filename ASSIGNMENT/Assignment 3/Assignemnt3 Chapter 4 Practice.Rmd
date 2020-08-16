@@ -1,0 +1,32 @@
+---
+title: "Chapter 4 practice"
+output: html_document
+---
+
+library(ISLR)
+data(Smarket)
+
+cor(Smarket[,-9])
+attach(Smarket)
+plot(Volume)
+# Logistic regression
+glm.fits=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data=Smarket, family=binomial)
+summary(glm.fits) # difine a line
+glm.probs=predict(glm.fits, type="response") # use the line to predict
+contrasts(Direction) #dummy variable
+glm.pred=rep("Down",1250) 
+glm.pred[glm.probs>.5]="up"
+table(glm.pred, Direction)
+mean(glm.pred==Direction)
+
+
+train=(Year<2005)
+Smarket.2005=(year==2005)
+Smarket.2005
+
+#LDA
+library(MASS)
+lda.fit=lda(Direction~Lag1+Lag2, data= Smarket, subset=train)
+lda.fit
+plot(lda.fit)
+

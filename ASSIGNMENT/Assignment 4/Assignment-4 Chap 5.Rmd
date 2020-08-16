@@ -1,0 +1,223 @@
+---
+title: "Assignment 4 Chap 5"
+output: 
+  pdf_document:
+  latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1--Exercise 3
+
+(1-a) 
+1. divide the data set into k chunks, 1 for testing data and k-1 for training data
+2. apply the model needed to validate, use k-1 chunks for training and 1 chunks for test, and take turns to get k test errors, then     average it for the model's test error.
+3. use next model (next k or other poly degree), repeat step 2 to get another test error.
+(1-b)
+i. The pro of k-fold cv relative to the validation approach is that its test error is much more deterministic whereas the estimate of validation approach is highly variable. In addition, the validation's test error may overestimate the test error. In the other hand, the con of k-fold cv relative to the validation approach is that k-fold cv is much more computationally intensive.
+ii.The pro of k-fold cv relative to LOOCV is that k-fold cv is less computationally intensive. In addition, k-fold cv have less variance, but however, higher bias than LOOCV.
+
+## Problem 2--Exercise 5
+(2-a)
+```{r}
+library(ISLR)
+attach(Default)
+set.seed(1)
+glm.a=glm(default~income+balance, data=Default, family = binomial)
+summary(glm.a)
+```
+
+(2-b)
+```{r}
+#i
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+#ii
+glm.b = glm(default~income+balance, data= Default, family = binomial, subset = train)
+#iii
+glm.b.pred= rep("No", dim(Default)[1]/2)
+glm.b.probs= predict(glm.b, Default[-train,], type="response")
+glm.b.pred[glm.b.probs>0.5] = "Yes"
+#iv
+mean(glm.b.pred != Default[-train,]$default)
+```
+
+(2-c)
+```{r}
+#First
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.b = glm(default~income+balance, data= Default, family = binomial, subset = train)
+glm.b.pred= rep("No", dim(Default)[1]/2)
+glm.b.probs= predict(glm.b, Default[-train,], type="response")
+glm.b.pred[glm.b.probs>0.5] = "Yes"
+mean(glm.b.pred != Default[-train,]$default)
+
+#Second
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.b = glm(default~income+balance, data= Default, family = binomial, subset = train)
+glm.b.pred= rep("No", dim(Default)[1]/2)
+glm.b.probs= predict(glm.b, Default[-train,], type="response")
+glm.b.pred[glm.b.probs>0.5] = "Yes"
+mean(glm.b.pred != Default[-train,]$default)
+
+#Third
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.b = glm(default~income+balance, data= Default, family = binomial, subset = train)
+glm.b.pred= rep("No", dim(Default)[1]/2)
+glm.b.probs= predict(glm.b, Default[-train,], type="response")
+glm.b.pred[glm.b.probs>0.5] = "Yes"
+mean(glm.b.pred != Default[-train,]$default)
+```
+The validation set error is approximately 2.6%
+
+(2-d)
+```{r}
+train = sample(dim(Default)[1], dim(Default)[1]/2)
+glm.d = glm(default~income+balance+student, data= Default, family = binomial, subset = train)
+glm.d.pred= rep("No", dim(Default)[1]/2)
+glm.d.probs= predict(glm.d, Default[-train,], type="response")
+glm.d.pred[glm.d.probs>0.5] = "Yes"
+mean(glm.d.pred != Default[-train,]$default)
+```
+It seems it doesn't matter at all. No sign of reduction in test error
+
+## Problem 3--Exercise 6
+(3-a)
+```{r}
+attach(Default)
+set.seed(1)
+glm.a=glm(default~income+balance, data=Default, family = binomial)
+summary(glm.a)
+```
+
+(3-b)
+```{r}
+boot.fn = function(data,index)
+  return(coef(glm(default~income+balance, data=data, family = binomial, subset = index)))
+```
+
+(3-c)
+```{r}
+library(boot)
+boot(Default, boot.fn, 100)
+```
+
+(3-d)
+Only the sd of intercept have 10% difference, the other two estimate's sd don't have the significant difference.
+
+## Problem 4--Exercise 9
+(4-a)
+```{r}
+library(MASS)
+attach(Boston)
+medv.mean=mean(medv)
+medv.mean
+```
+
+(4-b)
+```{r}
+medv.error=sd(medv)/sqrt(length(medv))
+medv.error
+```
+
+(4-c)
+```{r}
+boot.fu=function(data, index)
+  return(mean(data[index]))
+boot.9c=boot(medv, boot.fu, 1000)
+boot.9c
+```
+Pretty similar. 0.41 AND 0.408
+
+(4-d)
+```{r}
+t.test(medv)
+c(boot.9c$t0 - 2*0.41, boot.9c$t0 + 2*0.41)
+```
+t-test interval are narrower than bootstrp confidence interval by 0.36
+
+(4-e)
+```{r}
+medv.med= median(medv)
+medv.med
+```
+
+(4-f)
+```{r}
+boot.fu.median=function(data, index)
+  return(median(data[index]))
+boot.9f=boot(medv, boot.fu.median, 1000)
+boot.9f
+```
+Median is 21.2, sd is 0.37. The confidence interval of median will be pretty narrow.
+
+(4-g)
+```{r}
+medv.tenth = quantile(medv, c(0.1))
+medv.tenth
+```
+
+(4-h)
+```{r}
+boot.fu.tenth=function(data, index)
+  return(quantile(data[index], c(0.1)))
+boot.9h=boot(medv, boot.fu.tenth, 1000)
+boot.9h
+```
+
+## Problem 5
+(5-a)
+```{r}
+attach(USArrests)
+pca.arrest=function(data, index){
+  pr.out=prcomp(data[index,], scale=TRUE)
+  pr.var=pr.out$sdev^2
+  pve=pr.var/sum(pr.var)
+  return(pve)
+}
+boot.pca=boot(USArrests, pca.arrest, 1000)
+boot.pca
+hist(boot.pca$t[,1]+boot.pca$t[,2], xlab="proportion of variance explained", col=2)
+```
+
+(5-b)
+```{r}
+boot.pca
+first= c(boot.pca$t0[1] - 2*0.046, boot.pca$t0[1] + 2*0.046)
+second= c(boot.pca$t0[2] - 2*0.035, boot.pca$t0[2] + 2*0.035)
+first 
+second
+```
+PC1 SD=0.046, 95% INTERVAL=0.52~0.71  
+PC2 SD=0.035, 95% INTERVAL=0.17~0.32
+
+(5-c)
+Because the loading vector is the eigenvector, and for the eigenvector, it can have two opposite directions, positive or negative. In this way, the avaeage of 1000 vectors will be extremely variable, sd will be extremely large, since each vectors will probabally have different directions.
+
+(5-d)
+```{r}
+pca.4=function(data, index){
+  pca.out=prcomp(data[index,], scale=TRUE)
+  PCA.loading=pca.out$rotation[,1]
+  x = max(abs(PCA.loading))
+  for (i in 1:4) {
+    if(x == PCA.loading[i] | x == -PCA.loading[i]){
+      x.number=i
+    }
+  }
+  sign.x = sign(PCA.loading[x.number])
+  y = PCA.loading*sign.x
+  return(y)
+}
+```
+
+(5-e)
+```{r}
+pca.boot=boot(USArrests, pca.4, 1000)
+pca.boot
+boxplot(pca.boot$t)
+```
+
+(5-f)
+If we can use signed loading, then we can change the loading vector in the same direction. At first, by sign of the maximum absolute value of the loading, we can realize the eigenvector's direction. And we wanna convert all the different vectors into the same direction, to do this, we multiple the the vector loading by the sign of the maximum absolute value of the loading, to put all the loading vector in a positive direction. And this method will surly become a good (smaller) standard error estimated for the PCA since it eliminates the direction problems of the eigenvector.

@@ -1,0 +1,318 @@
+---
+title: "Assignment 2 Chapter3"
+output:
+  html_document:
+    df_print: paged
+---
+
+### (4.a)
+```{r}
+
+```
+If the irreducible error is large, then I think polynominal regression will have a better fit, which means data get large RSS. In the other hand, if the irreducible error is small, linear regression will have a better fit, smaller RSS.
+
+### (4.b)
+Polynominal regression will have a higher testing RSS due to the overfitting.
+
+### (4.c)
+Polynominal regression will perform better, having a lower RSS than linear regression. Since polynomincal regression is more flexible than the linear one, which means it can fit the unknown relationship of data pretty well to reduce the RSS.
+
+### (4.d)
+Basically, it's the bias-variance tradeoff in Chap.2. 
+Since we don't know how far it is from linear, there will be two possible answers.
+If the data is close to linear regression, linear regression will have a smaller testing RSS. Otherwise, if the data is far from linear regression, polynominal regression will have a samller testing RSS.
+
+### (9.a)
+```{r}
+require(ISLR)
+data(Auto)
+pairs(Auto)
+```
+
+### (9.b)
+```{r}
+cor(subset(Auto, select=-name))
+```
+
+### (9.c)
+```{r}
+lm.fit=lm(mpg~.-name, data=Auto)
+summary(lm.fit)
+```
+i. F-stat is 252.4, far from 1. And p value is way smaller. Therefore, there is a relationship between response and predictors.
+ii. Displacement, weight, year, and origin have a relatively smaller p value than the other predictors, which means they get a very strong relationship to the response.
+iii. For year variable, mpg will go up 0.75 for 1 year, which is positive relationship.
+
+### (9.d)
+```{r}
+par(mfrow=c(2,2))
+plot(lm.fit)
+plot(rstudent(lm.fit))
+```
+From the leverage plot, point 14 appears to have high leverage. And from studentized residual plot, there are a few plots exceed value 3, outliers possiblly.
+
+### (9.e)
+```{r}
+lm.fit1= lm(mpg~displacement*horsepower+horsepower*weight, data=Auto)
+summary(lm.fit1)
+```
+Wow, the interaction of displacement and horsepower is statistically significant. However, the interaction of horsepower and weight is not significant at all, p value is pretty big, and the 95% confidence level of estimate is possibly 0.
+
+### (9.e)
+```{r}
+lm.fit2= lm(mpg~log(displacement)+horsepower+I(horsepower^2)+weight, data=Auto)
+summary(lm.fit2)
+par(mfrow=c(2,2))
+plot(lm.fit2)
+```
+I log displacement and square horsepower. It seems like all the four paremeters have pretty significant importance for mpg. The residual plot is close to linear regression. But from the rest of plot, we can observe that there are still a few outliers and leverage point. And as the Normal Q-Q shows, there are some noises in the distribution of residuals. To address these issuee, maybe, it's cause by the non-linear relationship between each parameters and mpg. so let's try log mpg.
+```{r}
+lm.fit3= lm(log(mpg)~log(displacement)+horsepower+I(horsepower^2)+weight, data=Auto)
+summary(lm.fit3)
+par(mfrow=c(2,2))
+plot(lm.fit3)
+```
+After we log mpg, we can see that the outliers and leverage points become less. And the Normal Q-Q is kind of linear, which means the noise in residual has been decreased.
+
+### (14.a)
+```{r}
+set.seed(1)
+x1 = runif(100)
+x2 = 0.5 * x1 + rnorm(100)/10
+y = 2 + 2*x1 + 0.3*x2 + rnorm(100)
+```
+Y=2+2X1+0.3X2+ϵ
+β0=2,β1=2,β3=0.3
+
+### (14.b)
+```{r}
+cor(x1, x2)
+plot(x1, x2)
+```
+
+### (14.c)
+```{r}
+lm.fit = lm(y~x1+x2)
+summary(lm.fit)
+```
+β0=2.13,β1=1,43,β3=1.01. The p value for estimate for x1 and x2 is kind of high, representing insignificant. But these two numbers are still below the 5%, thus, we can reject the null hypothesis for these two parameters. But I don't think the regression coefficients are close to true data, since R-squared is only 20%, and the p value for each coefficinets is too high.
+
+### (14.d)
+```{r}
+lm.fit = lm(y~x1)
+summary(lm.fit)
+```
+We can surly reject the null hypothesis for x1, since the p value is so low, which means it has the significant importance to the y.
+
+### (14.e)
+```{r}
+lm.fit = lm(y~x2)
+summary(lm.fit)
+```
+We can surly reject the null hypothesis for x2, since the p value is so low, which means it has the significant importance to the y.
+
+### (14.f)
+```{r}
+
+```
+No, honestly, because of the colinearity of x1 x2, therefore, the 14.d and 14.e summaries are able to support that x1 and x2 are relevent to y respectively. Due to colinearity, 14.c summury shows that none of x1 and x2 have a pretty significant importance for y.
+
+### (14.g)
+```{r}
+x1 = c(x1, 0.1)
+x2 = c(x2, 0.8)
+y = c(y, 6)
+lm.fit1 = lm(y~x1+x2)
+summary(lm.fit1)
+lm.fit2 = lm(y~x1)
+summary(lm.fit2)
+lm.fit3 = lm(y~x2)
+summary(lm.fit3)
+```
+In the regression with both x1 and x2, the coefficient of x2 becomes statistical significance.
+```{r}
+par(mfrow=c(2,2))
+plot(lm.fit1)
+par(mfrow=c(2,2))
+plot(lm.fit2)
+par(mfrow=c(2,2))
+plot(lm.fit3)
+```
+In first and third model, there is a relatively high leverage point.
+```{r}
+plot(rstudent(lm.fit1))
+plot(rstudent(lm.fit2))
+plot(rstudent(lm.fit3))
+```
+In seconde model, there is an outlier out of value 3.
+
+### (15.a)
+```{r}
+require(MASS)
+data(Boston)
+Boston$chas = factor(Boston$chas, labels= c("N","Y"))
+contrasts(Boston$chas)
+lm.zn = lm(crim~zn, data = Boston)
+summary(lm.zn)
+```
+
+```{r}
+attach(Boston)
+lm.indus = lm(crim~indus)
+summary(lm.indus)
+```
+
+```{r}
+lm.chas = lm(crim~chas) 
+summary(lm.chas)
+```
+
+```{r}
+lm.nox = lm(crim~nox)
+summary(lm.nox)
+```
+
+```{r}
+lm.rm = lm(crim~rm)
+summary(lm.rm)
+```
+
+```{r}
+lm.age = lm(crim~age)
+summary(lm.age)
+```
+
+```{r}
+lm.age = lm(crim~age)
+summary(lm.age)
+```
+
+```{r}
+lm.dis = lm(crim~dis)
+summary(lm.dis)
+```
+
+```{r}
+lm.rad = lm(crim~rad)
+summary(lm.rad)
+```
+
+```{r}
+lm.tax = lm(crim~tax)
+summary(lm.tax)
+```
+
+```{r}
+lm.ptratio = lm(crim~ptratio)
+summary(lm.ptratio)
+```
+
+```{r}
+lm.black = lm(crim~black)
+summary(lm.black)
+```
+
+```{r}
+lm.lstat = lm(crim~lstat)
+summary(lm.lstat)
+```
+
+```{r}
+lm.medv = lm(crim~medv)
+summary(lm.medv)
+```
+All of the predictors, except chas, have significant association with the response.
+
+```{r}
+plot(lm.medv)
+```
+Like in this linear regression, you can see most of the residuals is quiet small, and the line fit the data, too.
+
+### (15.b)
+```{r}
+lm.all = lm(crim~., data=Boston)
+summary(lm.all)
+```
+zn, dis, rad, black, medv have the p value below 5%, which can reject the null hypothesis.
+
+### (15.c)
+```{r}
+x=c(coefficients(lm.zn)[2],
+      coefficients(lm.indus)[2],
+      coefficients(lm.chas)[2],
+      coefficients(lm.nox)[2],
+      coefficients(lm.rm)[2],
+      coefficients(lm.age)[2],
+      coefficients(lm.dis)[2],
+      coefficients(lm.rad)[2],
+      coefficients(lm.tax)[2],
+      coefficients(lm.ptratio)[2],
+      coefficients(lm.black)[2],
+      coefficients(lm.lstat)[2],
+      coefficients(lm.medv)[2])
+y=c(lm.all$coefficients[2:14])
+plot(x,y)
+```
+Coefficient for nox is -10 in univariate model and 31 in multiple model. And there are some coefficients that have opposite influence on the data between univariate model and multiple model.
+
+### (15.d)
+```{r}
+lm.zn = lm(crim~poly(zn,3))
+summary(lm.zn)
+```
+poly 1 2 important
+```{r}
+lm.indus = lm(crim~poly(indus,3))
+summary(lm.indus)
+```
+poly 1 2 3 important
+```{r}
+lm.rm = lm(crim~poly(rm,3))
+summary(lm.rm)
+```
+poly 1 2 important
+```{r}
+lm.nox = lm(crim~poly(nox,3))
+summary(lm.nox)
+```
+poly 1 2 3 important
+```{r}
+lm.age = lm(crim~poly(age,3))
+summary(lm.age)
+```
+poly 1 2 3 important
+```{r}
+lm.dis = lm(crim~poly(dis,3))
+summary(lm.dis)
+```
+poly 1 2 3 important
+```{r}
+lm.rad = lm(crim~poly(rad,3))
+summary(lm.rad) 
+```
+poly 1 2 important
+```{r}
+lm.tax = lm(crim~poly(tax,3))
+summary(lm.tax)
+```
+poly 1 2 important
+```{r}
+lm.ptratio = lm(crim~poly(ptratio,3))
+summary(lm.ptratio)
+```
+poly 1 2 3 important
+```{r}
+lm.black = lm(crim~poly(black,3))
+summary(lm.black)
+```
+poly 1 important
+```{r}
+lm.lstat = lm(crim~poly(lstat,3))
+summary(lm.lstat)
+```
+poly 1 2 important
+```{r}
+lm.medv = lm(crim~poly(medv,3))
+summary(lm.medv)
+```
+poly 1 2 3 important

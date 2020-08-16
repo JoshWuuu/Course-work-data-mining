@@ -1,0 +1,105 @@
+---
+title: "Assignment 2"
+output:
+  html_document:
+    df_print: paged
+---
+
+### (2.a)
+```{r}
+ex2 = as.dist(matrix(c(0, 0.3, 0.4, 0.7, 0.3, 0, 0.5, 0.8,0.4, 0.5, 0.0, 0.45,0.7, 0.8, 0.45, 0.0), nrow=4))
+plot(hclust(ex2, method="complete"))
+```
+
+
+### (2.b)
+```{r}
+ex2 = as.dist(matrix(c(0, 0.3, 0.4, 0.7, 0.3, 0, 0.5, 0.8,0.4, 0.5, 0.0, 0.45,0.7, 0.8, 0.45, 0.0), nrow=4))
+plot(hclust(ex2, method="single"))
+```
+
+### (2.c)
+(1,2), (3,4)
+
+### (2.d)
+(1, 2, 3), (4)
+
+### (2.e)
+```{r}
+ex2 = as.dist(matrix(c(0, 0.3, 0.4, 0.7, 0.3, 0, 0.5, 0.8,0.4, 0.5, 0.0, 0.45,0.7, 0.8, 0.45, 0.0), nrow=4))
+plot(hclust(ex2, method="complete"), labels=c(2,1,4,3))
+```
+
+### (9.a)
+```{r}
+complete=hclust(dist(USArrests), method="complete")
+plot(complete)
+```
+
+### (9.b)
+```{r}
+complete=hclust(dist(USArrests), method="complete")
+cutree(complete, 3)
+```
+
+### (9.c)
+```{r}
+sca = scale(USArrests)
+s.complete=hclust(dist(sca), method="complete")
+plot(s.complete)
+```
+
+### (9.d)
+```{r}
+table(cutree(s.complete, 3), cutree(complete, 3))
+```
+In 50 countries, there are only 28 countries are in the same cluster after scaling, which means scaling does matter. In addition, scaling is need for this data since the data get the different units. 
+
+### (10.a)
+```{r}
+x = matrix(rnorm(60*50, mean=0, sd=0.05), ncol=50)
+x[1:20, 2]=5
+x[21:40, 1:2]=20
+x[41:60, 1]=5
+x
+```
+
+### (10.b)
+```{r}
+pca=prcomp(x)
+plot(pca$x[,1:2], col=2:4, xlab = "PC1", ylab = "PC2", pch= 10)
+```
+
+### (10.c)
+```{r}
+Knn=kmeans(x, 3, nstart = 20)
+table(Knn$cluster, c(rep(1,20), rep(2,20), rep(3,20)))
+```
+
+### (10.d)
+```{r}
+Knntwo=kmeans(x, 2, nstart = 20)
+Knntwo$cluster
+```
+The first 20 and last 20 observations merge in one group since they both got integer 5 in column 1 and 2 repectively.
+
+### (10.e)
+```{r}
+Knnfour=kmeans(x, 4, nstart = 20)
+Knnfour$cluster
+```
+The first 20 column start to split into two clusters.
+
+### (10.f)
+```{r}
+kmmpca= kmeans(pca$x[,1:2], 3, nstart = 20)
+table(kmmpca$cluster, c(rep(1,20), rep(2,20), rep(3,20)))
+```
+Based on the plot in (10.b), PC1 and PC2 score vector for each observation have already formed three different clusters, therefore, the result of knn will be same with the cluster in the PCA score vector. 
+
+### (10.g)
+```{r}
+kmmscale= kmeans(scale(x), 3, nstart = 20)
+kmmscale$cluster
+```
+The result of the scale is not that clear as the ordinary data. Since the ordinary data's sd is only 0.05, in this way, the special design for this observation (x[1:20, 2]=5, x[21:40, 1:2]=20, x[41:60, 1]=5) will be large enough to form three distinct classes. However, after scaling, sd becomes 1, which will make the special design not distinct enough to cluster with each other (the distance between each data is different). 

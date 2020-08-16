@@ -1,0 +1,34 @@
+---
+title: "Assignment2 Chapter3 Practice"
+output: html_document
+---
+
+library(MASS)
+data(Boston)
+lm.fit=lm(medv~lstat, data=Boston)
+lm.fit
+summary(lm.fit)
+predict(lm.fit, data.frame(lstat=c(5,10,15)), interval="confidence")
+predict(lm.fit, data.frame(lstat=c(5,10,15)), interval="prediction")
+
+plot(lstat, medv)
+abline(lm.fit)
+plot(lm.fit)
+
+plot(predict(lm.fit), residuals(lm.fit))
+plot(predict(lm.fit), rstudent(lm.fit))
+plot(hatvalues(lm.fit))
+
+lm.fit=lm(medv~lstat+age, data=Boston)
+summary(lm.fit)
+
+install.packages("car")
+
+?contrasts
+contrasts(ShelveLoc)
+
+ll=function(){
++ library(ISLR)
++ library(MASS)
++ print("The libraries have been loaded")
+}

@@ -1,0 +1,231 @@
+---
+title: "Assignment 5- Chap 6"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1--Exercise 1
+(a) Best subset selection can have the smallest training error since it will consider all the possible model that have minimum training error, whereas the other two methods kidda depands on the first predictors they select and choose the predictors that can minimize the RSS.
+(b) Best subset selection is very possible to have the smallest test RSS since it can consider all the possible model that can minimize the training error, whereas the other two methods considers less options than the best subet selection therefore the two method will be hard to outperform the best subset selection.
+(c) i. true ii.true iii. false iv. false v. false
+
+
+## Problem 2--Exercise 3
+(a) iv Steadily decrease. As s increases from 0, the beta will increase from 0 to their least square estimate values
+(b) ii decrease initially then eventually start increasing in a U shape. When s = 0, the test error will be extremely large, since all the estimate is 0, except intercept, then after increase s, the estimate will gradually fit with the true model, but eventually, the test error will increase again, since the model start overfitting the data.
+(c) iii steadily increases, as s increase, the estimate will start to fit the dataset, and eventually fit the data with the very high variance.
+(d) iv Steadily decrease. As s increases from 0, the bias will become smaller.
+(e) v remain constant, irreducible error is always there and constant, no matter how we increase s.
+
+## Problem 3--Exercise 8
+(a) 
+```{r}
+x = rnorm(100)
+noice = rnorm(100)
+```
+
+(b) 
+```{r}
+beta0 = 5
+beta1 = 7
+beta2 = -5
+beta3 = 0.5
+y = beta0 + beta1 * x + beta2 * x^2 + beta3 * x^3 + noice
+```
+
+(c) 
+```{r}
+library(leaps)
+data= data.frame(y=y, x= x)
+bs1 = regsubsets(y ~ poly(x,10,raw=T), data= data, nvmax=10)
+bs.summary= summary(bs1)
+which.min(bs.summary$bic)
+plot(bs.summary$bic, xlab = "subset size", ylab="bic", type = "l")
+points(3, bs.summary$bic[3], pch = 4, col = "red", lwd = 7)
+which.min(bs.summary$adjr2)
+plot(bs.summary$adjr2, xlab = "subset size", ylab="adjr", type = "l")
+points(3, bs.summary$adjr2[3], pch = 4, col = "red", lwd = 7)
+which.min(bs.summary$cp)
+plot(bs.summary$cp, xlab = "subset size", ylab="cp", type = "l")
+points(3, bs.summary$cp[3], pch = 4, col = "red", lwd = 7)
+coefficients(bs1, id=3)
+```
+
+(d) 
+```{r}
+fs1=regsubsets(y ~ poly(x,10, raw=T), data = data, nvmax = 10, method="forward")
+bw1=regsubsets(y ~ poly(x,10,raw=T), data = data, nvmax=10, method = "backward")
+fs1.summary=summary(fs1)
+bw1.summary=summary(bw1)
+par(mfrow = c(3,2))
+which.min(fs1.summary$cp)
+plot(fs1.summary$cp, xlab = "subset size", ylab="cp", type = "l")
+points(3, fs1.summary$cp[3], pch = 4, col = "red", lwd = 7)
+which.min(fs1.summary$bic)
+plot(fs1.summary$bic, xlab = "subset size", ylab="bic", type = "l")
+points(3, fs1.summary$bic[3], pch = 4, col = "red", lwd = 7)
+which.min(fs1.summary$adjr2)
+plot(fs1.summary$adjr2, xlab = "subset size", ylab="adjr2", type = "l")
+points(3, fs1.summary$adjr2[3], pch = 4, col = "red", lwd = 7)
+which.min(bw1.summary$cp)
+plot(bw1.summary$cp, xlab = "subset size", ylab="cp", type = "l")
+points(3, bw1.summary$cp[3], pch = 4, col = "red", lwd = 7)
+which.min(bw1.summary$bic)
+plot(bw1.summary$bic, xlab = "subset size", ylab="bic", type = "l")
+points(3, bw1.summary$bic[3], pch = 4, col = "red", lwd = 7)
+which.min(bw1.summary$adjr2)
+plot(bw1.summary$adjr2, xlab = "subset size", ylab="adjr2", type = "l")
+points(4, bw1.summary$adjr2[4], pch = 4, col = "red", lwd = 7)
+coefficients(fs1, id=3)
+coefficients(bw1, id=3)
+```
+Both of these two methods pick 3 variable model except beackward stepwise with adjusted R2 pick 4 variable. 
+As the id=3 predictors show, both of the method pick the correct predictors and the coefficient of each predictor is quiet close to the true relationship.
+
+(e) 
+```{r}
+library(glmnet)
+xmatrix= model.matrix(y ~ poly(x, 10, raw = T), data= data)[, -1]
+lasso1.cv=cv.glmnet(xmatrix, y, alpha=1)
+best=lasso1.cv$lambda.min
+best
+plot(lasso1.cv)
+lasso1=glmnet(xmatrix, y, alpha=1)
+predict(lasso1, s=best, type="coefficients")
+```
+As you can see, the last six estimates have been shinked to 0 (x5~x10), and the estimate of x4 is very close to 0.
+
+(f)
+```{r}
+beta7 = 8
+beta0 = 5
+y = beta0 + beta7* x^7 + noice
+data=data.frame(y=y, x=x)
+best.f=regsubsets(y~ poly(x, 10, raw=T), data = data, nvmax = 10)
+bs.f= summary(best.f)
+which.min(bs.f$bic)
+which.min(bs.f$adjr2)
+which.min(bs.f$cp)
+coefficients(best.f, id=1)
+coefficients(best.f, id=10)
+```
+BIC and CP for best model selection is quiet accurate, select only one variable model and the estimate of it is very close, where as the adjr2 select 10 variable model, but as you can see, the estimate of x7 and intercept is quiet close and the other estimate is close to 0, therefore, for adjr2, it only includes too many variables but the accuracy is still good.
+```{r}
+xmat = model.matrix(y ~ poly(x, 10, raw = T), data = data)[, -1]
+lasso.cvf=cv.glmnet(xmat, y ,alpha=1)
+best.lamdaf=lasso.cvf$lambda.min
+best.lassof=glmnet(xmat, y , alpha = 1)
+predict(best.lassof, s= best.lamdaf, type = "coefficients")
+```
+Lasso shrinks the x1~x6 and x8~x10 to 0, which is quiet accurate, and the estimate of the remaining two variables is close to the true relationship.
+
+## Problem 4--Exercise 9
+(a) 
+```{r}
+library(ISLR)
+data("College")
+train= sample(1:dim(College)[1], dim(College)[1]/2)
+test = -train
+traindata=College[train, ]
+testdata=College[test, ]
+```
+
+(b) 
+```{r}
+lr=lm(Apps~., data= traindata)
+lr.pred = predict(lr, testdata)
+mean((testdata[,"Apps"]-lr.pred)^2)
+```
+test error is 1406014
+
+(c) 
+```{r}
+train.mat= model.matrix(Apps~., data = traindata)
+test.mat=model.matrix(Apps~., data = testdata)
+grid = 10 ^ seq(4, -2, length=100)
+ridge9 = cv.glmnet(train.mat, traindata[, "Apps"], alpha=0, lambda = grid, thresh=1e-12)
+lambda.rigdge=ridge9$lambda.min
+lambda.rigdge
+ridge99 = cv.glmnet(train.mat, traindata[, "Apps"], alpha=0, lambda = grid, thresh=1e-12)
+ridge.pre= predict(ridge99, newx=test.mat, s=lambda.rigdge)
+mean((testdata[, "Apps"]- ridge.pre)^2)
+```
+test error is 1469542
+
+(d) 
+```{r}
+train.mat= model.matrix(Apps~., data = traindata)
+test.mat=model.matrix(Apps~., data = testdata)
+lasso9= cv.glmnet(train.mat, traindata[, "Apps"], alpha = 1, lambda = grid, thresh=1e-12)
+lasso99= glmnet(train.mat, traindata[, "Apps"], alpha = 1, lambda = grid, thresh=1e-12)
+lasso.pred=predict(lasso99, newx = test.mat, s = lasso9$lambda.min)
+mean((testdata[,"Apps"]-lasso.pred)^2)
+predict(lasso99, s=lasso9$lambda.min, type="coefficients")
+```
+test error is 1405995
+
+(e) 
+```{r}
+library(pls)
+pcr.fit=pcr(Apps~., data=traindata, scale=T, validation="CV")
+validationplot(pcr.fit, val.type="MSEP")
+summary(pcr.fit)
+pcr.pred= predict(pcr.fit, testdata, ncomp=10)
+mean((testdata[,"Apps"]- pcr.pred)^2)
+```
+n=10, test error is 2797760
+
+(f) 
+```{r}
+plsr.fit=plsr(Apps~., data=traindata, scale=T, validation="CV")
+validationplot(plsr.fit, val.type="MSEP")
+summary(plsr.fit)
+plsr.pred=predict(plsr.fit, testdata, ncomp=10)
+mean((testdata[, "Apps"]- plsr.pred)^2)
+```
+n=10, test error is 1345153
+
+(g) 
+```{r}
+testavg=mean(testdata[, "Apps"])
+lm.r2= 1-mean((testdata[, "Apps"]-lr.pred)^2)/mean((testdata[, "Apps"]-testavg)^2)
+ridge.r2= 1-mean((testdata[, "Apps"]-ridge.pre)^2)/mean((testdata[, "Apps"]-testavg)^2)
+lasso.r2= 1-mean((testdata[, "Apps"]-lasso.pred)^2)/mean((testdata[, "Apps"]-testavg)^2)
+pcr.r2= 1-mean((testdata[, "Apps"]-pcr.pred)^2)/mean((testdata[, "Apps"]-testavg)^2)
+plsr.r2= 1-mean((testdata[, "Apps"]-plsr.pred)^2)/mean((testdata[, "Apps"]-testavg)^2)
+barplot(c(lm.r2,ridge.r2,lasso.r2,pcr.r2,plsr.r2),names.arg=c("lm.r2","ridge.r2","lasso.r2","pcr.r2","plsr.r2"))
+```
+Use R squared to account for the results of the models, all model except pcr got a 90% R squared, which means thats all the model except can get a 90% accuracy (variance explained), and pcr model, otherwise, predicts poorly, which only has around 70% variance explained.
+
+## Problem 5--Exercise 11
+
+(a) 
+```{r}
+library(glmnet)
+library(MASS)
+data(Boston)
+lasso.x=model.matrix(crim~. -1, data = Boston)
+lasso.y=Boston$crim
+cv.lasso=cv.glmnet(lasso.x,lasso.y) 
+coef(cv.lasso)
+sqrt(cv.lasso$cvm[cv.lasso$lambda == cv.lasso$lambda.min])
+```
+
+```{r}
+cv.ridge=cv.glmnet(lasso.x,lasso.y,alpha=0)
+coef(cv.ridge)
+sqrt(cv.ridge$cvm[cv.lasso$lambda == cv.lasso$lambda.min])
+```
+
+```{r}
+pcr.fit = pcr(crim~. , data=Boston, scale= T, validation="CV")
+summary(pcr.fit)
+```
+n=13, the model has the lowest cv and adjcv.
+
+(b) I would choose lasso model as my chosen model, since from MSR, it has the second best performance. And it is much simpler than the other two models
+
+(c) no, only contain one feature and one intercept. Since it is lasso, the other parameters have been shinked to 0.
